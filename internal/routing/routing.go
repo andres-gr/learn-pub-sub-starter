@@ -1,3 +1,4 @@
+// Package routing contains constants for routing keys and exchange names.
 package routing
 
 const (
@@ -14,3 +15,11 @@ const (
 	ExchangePerilDirect = "peril_direct"
 	ExchangePerilTopic  = "peril_topic"
 )
+
+func QueueName(key, name string) string {
+	if name == "" {
+		return key
+	}
+	
+	return key + "." + name
+}

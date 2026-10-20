@@ -20,7 +20,7 @@ func main() {
 	}
 
 	defer func() {
-		if err := conn.Close(); err != nil {
+		if err = conn.Close(); err != nil {
 			log.Fatalf("failed to close connection: %s", err)
 		}
 	}()
