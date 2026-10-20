@@ -7,6 +7,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 )
@@ -30,19 +31,56 @@ func main() {
 		log.Fatalf("failed to open a channel: %s", err)
 	}
 
-	err = pubsub.PublishJSON(
-		ch,
-		routing.ExchangePerilDirect,
-		routing.PauseKey,
-		routing.PlayingState{
-			IsPaused: true,
-		},
-	)
-	if err != nil {
-		log.Fatalf("failed to publish JSON: %s", err)
-	}
-
 	log.Printf("[server] connected to %s", queueServer)
+
+	gamelogic.PrintClientHelp()
+
+	for isActive := true; isActive; {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			continue
+		}
+
+		switch input[0] {
+		case routing.PauseKey:
+			log.Println("[server] pausing game")
+
+			err = pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilDirect,
+				routing.PauseKey,
+				routing.PlayingState{
+					IsPaused: true,
+				},
+			)
+			if err != nil {
+				log.Fatalf("failed to publish JSON: %s", err)
+			}
+
+		case routing.ResumeKey:
+			log.Println("[server] resuming game")
+
+			err = pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilDirect,
+				routing.PauseKey,
+				routing.PlayingState{
+					IsPaused: false,
+				},
+			)
+			if err != nil {
+				log.Fatalf("failed to publish JSON: %s", err)
+			}
+
+		case routing.QuitKey:
+			log.Println("[server] exiting")
+			isActive = false
+
+		default:
+			log.Printf("[server] unknown command: %s", input[0])
+			gamelogic.PrintClientHelp()
+		}
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
