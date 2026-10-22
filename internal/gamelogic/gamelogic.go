@@ -1,3 +1,4 @@
+// Package gamelogic contains the game logic for the Peril game
 package gamelogic
 
 import (

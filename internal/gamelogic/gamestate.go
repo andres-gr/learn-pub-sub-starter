@@ -10,6 +10,16 @@ type GameState struct {
 	mu     *sync.RWMutex
 }
 
+type GameCommand string
+
+const (
+	HelpKey   GameCommand = "help"
+	MoveKey   GameCommand = "move"
+	SpamKey   GameCommand = "spam"
+	SpawnKey  GameCommand = "spawn"
+	StatusKey GameCommand = "status"
+)
+
 func NewGameState(username string) *GameState {
 	return &GameState{
 		Player: Player{

@@ -33,6 +33,18 @@ func main() {
 
 	log.Printf("[server] connected to %s", queueServer)
 
+	qKey := routing.QueueName(routing.GameLogSlug, "*")
+	_, _, err = pubsub.DeclareAndBind(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		qKey,
+		pubsub.DurableQueueType,
+	)
+	if err != nil {
+		log.Fatalf("failed to declare and bind queue: %s", err)
+	}
+
 	gamelogic.PrintClientHelp()
 
 	for isActive := true; isActive; {

@@ -43,6 +43,50 @@ func main() {
 		log.Fatalf("failed to declare and bind queue: %s", err)
 	}
 
+	gs := gamelogic.NewGameState(username)
+
+	for isActive := true; isActive; {
+		input := gamelogic.GetInput()
+		if len(input) == 0 {
+			continue
+		}
+
+		switch input[0] {
+		case string(gamelogic.SpawnKey):
+			err = gs.CommandSpawn(input)
+			if err != nil {
+				log.Fatalf("failed to spawn: %s", err)
+			}
+
+		case string(gamelogic.MoveKey):
+			move, err := gs.CommandMove(input)
+			if err != nil {
+				log.Fatalf("failed to move: %s", err)
+				return
+			}
+
+			log.Printf("[client] move: %v", move)
+
+		case string(gamelogic.StatusKey):
+			gs.CommandStatus()
+
+		case string(gamelogic.HelpKey):
+			gamelogic.PrintClientHelp()
+
+		case string(gamelogic.SpamKey):
+			log.Println("[client] Spamming not allowed yet!")
+
+		case routing.QuitKey:
+			gamelogic.PrintQuit()
+
+			isActive = false
+
+		default:
+			log.Printf("[client] unknown command: %s", input[0])
+			gamelogic.PrintClientHelp()
+		}
+	}
+
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
