@@ -40,6 +40,9 @@ func main() {
 		routing.GameLogSlug,
 		qKey,
 		pubsub.DurableQueueType,
+		amqp.Table{
+			"x-dead-letter-exchange": pubsub.DeadLetterExchange,
+		},
 	)
 	if err != nil {
 		log.Fatalf("failed to declare and bind queue: %s", err)

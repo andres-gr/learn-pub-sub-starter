@@ -7,6 +7,8 @@ type SimpleQueueType string
 const (
 	DurableQueueType   SimpleQueueType = "durable"
 	TransientQueueType SimpleQueueType = "transient"
+
+	DeadLetterExchange = "peril_dlx"
 )
 
 func DeclareAndBind(
@@ -15,6 +17,7 @@ func DeclareAndBind(
 	queueName,
 	key string,
 	queueType SimpleQueueType,
+	opts amqp.Table,
 ) (*amqp.Channel, amqp.Queue, error) {
 	ch, err := conn.Channel()
 	if err != nil {
@@ -27,7 +30,7 @@ func DeclareAndBind(
 		queueType == TransientQueueType,
 		queueType == TransientQueueType,
 		false,
-		nil,
+		opts,
 	)
 	if err != nil {
 		return nil, amqp.Queue{}, err

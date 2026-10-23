@@ -45,6 +45,11 @@ func main() {
 		log.Fatalf("failed to subscribe to %s: %s", qName, err)
 	}
 
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("failed to open a channel: %s", err)
+	}
+
 	armyMovesQ := routing.QueueName(routing.ArmyMovesPrefix, gs.GetUsername())
 	armyMovesKey := routing.QueueName(routing.ArmyMovesPrefix, "*")
 	err = pubsub.SubscribeJSON(
@@ -53,15 +58,23 @@ func main() {
 		armyMovesQ,
 		armyMovesKey,
 		pubsub.TransientQueueType,
-		handleMove(gs),
+		handleMove(gs, ch),
 	)
 	if err != nil {
 		log.Fatalf("failed to subscribe to %s: %s", armyMovesQ, err)
 	}
 
-	ch, err := conn.Channel()
+	warQ := routing.QueueName(routing.WarRecognitionsPrefix, "*")
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		warQ,
+		pubsub.DurableQueueType,
+		handleWar(gs),
+	)
 	if err != nil {
-		log.Fatalf("failed to open a channel: %s", err)
+		log.Fatalf("failed to subscribe to %s: %s", routing.WarRecognitionsPrefix, err)
 	}
 
 	for isActive := true; isActive; {
