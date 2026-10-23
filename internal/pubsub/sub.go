@@ -32,6 +32,12 @@ func SubscribeJSON[T any](
 	}
 
 	go func() {
+		defer func() {
+			if err = ch.Close(); err != nil {
+				log.Printf("failed to close channel: %s", err)
+			}
+		}()
+
 		for d := range delivery {
 			var val T
 

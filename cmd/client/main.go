@@ -31,20 +31,38 @@ func main() {
 		log.Fatalf("failed to get username: %s", err)
 	}
 
-	qName := routing.QueueName(routing.PauseKey, username)
+	gs := gamelogic.NewGameState(username)
+	qName := routing.QueueName(routing.PauseKey, gs.GetUsername())
 	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		qName,
 		routing.PauseKey,
 		pubsub.TransientQueueType,
-		handlePause(gamelogic.NewGameState(username)),
+		handlePause(gs),
 	)
 	if err != nil {
 		log.Fatalf("failed to subscribe to %s: %s", qName, err)
 	}
 
-	gs := gamelogic.NewGameState(username)
+	armyMovesQ := routing.QueueName(routing.ArmyMovesPrefix, gs.GetUsername())
+	armyMovesKey := routing.QueueName(routing.ArmyMovesPrefix, "*")
+	err = pubsub.SubscribeJSON(
+		conn,
+		routing.ExchangePerilTopic,
+		armyMovesQ,
+		armyMovesKey,
+		pubsub.TransientQueueType,
+		handleMove(gs),
+	)
+	if err != nil {
+		log.Fatalf("failed to subscribe to %s: %s", armyMovesQ, err)
+	}
+
+	ch, err := conn.Channel()
+	if err != nil {
+		log.Fatalf("failed to open a channel: %s", err)
+	}
 
 	for isActive := true; isActive; {
 		input := gamelogic.GetInput()
@@ -66,16 +84,30 @@ func main() {
 				return
 			}
 
+			err = pubsub.PublishJSON(
+				ch,
+				routing.ExchangePerilTopic,
+				armyMovesQ,
+				move,
+			)
+			if err != nil {
+				log.Fatalf("failed to publish move: %s", err)
+				return
+			}
+
 			log.Printf("[client] move: %v", move)
+			log.Print("> ")
 
 		case string(gamelogic.StatusKey):
 			gs.CommandStatus()
+			log.Print("> ")
 
 		case string(gamelogic.HelpKey):
 			gamelogic.PrintClientHelp()
 
 		case string(gamelogic.SpamKey):
 			log.Println("[client] Spamming not allowed yet!")
+			log.Print("> ")
 
 		case routing.QuitKey:
 			gamelogic.PrintQuit()
@@ -85,6 +117,7 @@ func main() {
 		default:
 			log.Printf("[client] unknown command: %s", input[0])
 			gamelogic.PrintClientHelp()
+			log.Print("> ")
 		}
 	}
 
