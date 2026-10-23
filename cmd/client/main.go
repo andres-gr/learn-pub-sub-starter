@@ -32,15 +32,16 @@ func main() {
 	}
 
 	qName := routing.QueueName(routing.PauseKey, username)
-	_, _, err = pubsub.DeclareAndBind(
+	err = pubsub.SubscribeJSON(
 		conn,
 		routing.ExchangePerilDirect,
 		qName,
 		routing.PauseKey,
 		pubsub.TransientQueueType,
+		handlePause(gamelogic.NewGameState(username)),
 	)
 	if err != nil {
-		log.Fatalf("failed to declare and bind queue: %s", err)
+		log.Fatalf("failed to subscribe to %s: %s", qName, err)
 	}
 
 	gs := gamelogic.NewGameState(username)
