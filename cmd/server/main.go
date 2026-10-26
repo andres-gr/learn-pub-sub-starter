@@ -34,18 +34,23 @@ func main() {
 	log.Printf("[server] connected to %s", queueServer)
 
 	qKey := routing.QueueName(routing.GameLogSlug, "*")
-	_, _, err = pubsub.DeclareAndBind(
+	err = pubsub.SubscribeGob(
 		conn,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
 		qKey,
 		pubsub.DurableQueueType,
-		amqp.Table{
-			"x-dead-letter-exchange": pubsub.DeadLetterExchange,
+		func(gl routing.GameLog) pubsub.AckType {
+			er := gamelogic.WriteLog(gl)
+			if er != nil {
+				defer log.Println(er)
+			}
+
+			return pubsub.Ack
 		},
 	)
 	if err != nil {
-		log.Fatalf("failed to declare and bind queue: %s", err)
+		log.Fatalf("failed to subscribe: %s", err)
 	}
 
 	gamelogic.PrintClientHelp()

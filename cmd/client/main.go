@@ -71,7 +71,7 @@ func main() {
 		routing.WarRecognitionsPrefix,
 		warQ,
 		pubsub.DurableQueueType,
-		handleWar(gs),
+		handleWar(gs, ch),
 	)
 	if err != nil {
 		log.Fatalf("failed to subscribe to %s: %s", routing.WarRecognitionsPrefix, err)
