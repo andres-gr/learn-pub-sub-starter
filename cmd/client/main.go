@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
@@ -119,7 +121,35 @@ func main() {
 			gamelogic.PrintClientHelp()
 
 		case string(gamelogic.SpamKey):
-			log.Println("[client] Spamming not allowed yet!")
+			if len(input) < 2 {
+				log.Println("[client] spam <n>, where <n> is the number of messages to spam")
+				continue
+			}
+
+			cnt, err := strconv.Atoi(input[1])
+			if err != nil {
+				log.Printf("[client] failed to convert %s to int: %s", input[1], err)
+				continue
+			}
+
+			for range cnt {
+				msg := gamelogic.GetMaliciousLog()
+				qKey := routing.QueueName(routing.GameLogSlug, gs.GetUsername())
+				err := pubsub.PublishGob(
+					ch,
+					routing.ExchangePerilTopic,
+					qKey,
+					routing.GameLog{
+						CurrentTime: time.Now(),
+						Message:     msg,
+						Username:    gs.GetUsername(),
+					},
+				)
+				if err != nil {
+					log.Fatalf("failed to publish log: %s", err)
+				}
+			}
+
 			log.Print("> ")
 
 		case routing.QuitKey:
